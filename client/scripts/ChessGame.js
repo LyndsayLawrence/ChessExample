@@ -14,6 +14,7 @@ var inited = false;
 var canvas;
 var stage;
 var board;
+var game;
 var squares = [];
 
 var p1NameCont;
@@ -82,142 +83,84 @@ function buildGameUI(){
 	//--------------------------
 	// Board
 	//--------------------------
-	board = new createjs.Container();
-	
-	//Background
-	var boardBG = new createjs.Shape();
-		boardBG.graphics.beginFill("#FFFFFF");
-		boardBG.graphics.drawRect(0, 0, BOARD_SIZE, BOARD_SIZE);
-		boardBG.width = boardBG.height = BOARD_SIZE;
-		boardBG.cache(0, 0, boardBG.width, boardBG.height);
-	
-	board.addChild(boardBG);
-	
-	//Squares
-	// We use BitmapAnimation for the pieces as we aren't going to add childs to them
-	var pieceSS = new createjs.SpriteSheet({
-											images:["images/ballSS.png"],
-											frames: {
-													regX: 0,
-													regY: 0,
-													height: 36,
-													width: 36,
-													count: 3,
-												}
-										});
-	var pieceShadow = new createjs.Shadow("#666666", 2, 3, 5);
-	var sqSize = (BOARD_SIZE - (BOARD_BORDER*4)) / 3;
-	for(var i = 0; i<9; i++){
-		var square = new createjs.Container();
-		square.x = i%3 * (sqSize+BOARD_BORDER) + BOARD_BORDER;
-		square.y = Math.floor(i/3) * (sqSize+BOARD_BORDER) + BOARD_BORDER;
-		
-		var sqBG = new createjs.Shape();
-			sqBG.graphics.beginFill("#F1F0DA");
-			sqBG.graphics.drawRect(0, 0, sqSize, sqSize);
-			
-		//Piece
-		// 0 - no piece
-		// 1 - green piece
-		// 2 - red piece
-		square.ball = new createjs.BitmapAnimation(pieceSS);
-		square.ball.gotoAndStop(0);
-		square.ball.width = square.ball.height = PIECE_SIZE;
-		square.ball.x = sqSize/2 - square.ball.width/2;
-		square.ball.y = sqSize/2 - square.ball.height/2;
-		square.ball.shadow = pieceShadow;
-		
-		square.id = squares.length;
-		squares.push(square);
-		
-		square.addChild(sqBG);
-		square.addChild(square.ball);
-		board.addChild(square);
-	}
-	
-	board.rotation = -8;
-	board.width = board.height = BOARD_SIZE;
-	board.x = canvas.width/2 - board.width/2;
-	board.y = 150;
-	stage.addChild(board);
-	
-	//--------------------------
-	// Player Names
-	//--------------------------
-	p1NameCont = new createjs.Container();
-	
-	//Background
-	var pBG = new createjs.Shape();
-		pBG.graphics.setStrokeStyle(5);
-		pBG.graphics.beginStroke("#FFFFFF");
-		pBG.graphics.beginFill("#F0F0F0");
-		pBG.width = 150; pBG.height = 25;
-		pBG.graphics.drawRect(0, 0, pBG.width, pBG.height);
-		pBG.cache(-2.5, -2.5, pBG.width+5, pBG.height+5);
-	p1NameCont.addChild(pBG);
-	
-	//TextField
-	p1NameCont.name = new createjs.Text("", "bold 14px Verdana", "#000000");
-	p1NameCont.name.textAlign = "center";
-	p1NameCont.name.x = (pBG.width-5)/2;
-	p1NameCont.name.y = 2.5;
-	p1NameCont.addChild(p1NameCont.name);
-	
-	//Piece
-	var p1BallBmp = new createjs.Bitmap("images/ballSS.png");
-		p1BallBmp.sourceRect = new createjs.Rectangle(36, 0, 36, 36);
-		p1BallBmp.x = pBG.width + 6.5;
-		p1BallBmp.y = 1.5;
-		p1BallBmp.scaleX = p1BallBmp.scaleY = 0.65;
-	p1NameCont.addChild(p1BallBmp);
-	
-	p1NameCont.x = 15;
-	p1NameCont.y = 25;
-	stage.addChild(p1NameCont);
-	
-	//--------------------------
-	
-	p2NameCont = new createjs.Container();
-	
-	//Background
-	var p2BG = pBG.clone();
-		p2BG.x = -2.5 + 31;
-		p2BG.y = -2.5;
-	p2NameCont.addChild(p2BG);
-	
-	//TextField
-	p2NameCont.name = p1NameCont.name.clone();
-	p2NameCont.name.x = p1NameCont.name.x + 31;
-	p2NameCont.addChild(p2NameCont.name);
-	
-	//Piece
-	var p2BallBmp = p1BallBmp.clone();
-		p2BallBmp.sourceRect = new createjs.Rectangle(72, 0, 36, 36);
-		p2BallBmp.x = 0;
-	p2NameCont.addChild(p2BallBmp);
-	
-	p2NameCont.x = 382;
-	p2NameCont.y = p1NameCont.y;
-	stage.addChild(p2NameCont);
-	
-	//--------------------------
-	// Status TextField
-	//--------------------------
-	statusTF = new createjs.Text("", "bold 14px Verdana", "#000000");
-	statusTF.textAlign = "center";
-	statusTF.x = 289;
-	statusTF.y = 70;
-	stage.addChild(statusTF);
-	
-	//--------------------------
-	// Disabler
-	//--------------------------
-	disabler = new createjs.Shape();
-		disabler.graphics.beginFill("#000000");
-		disabler.graphics.drawRect(0, 0, canvas.width, canvas.height);
-		disabler.alpha = 0.5;
-		disabler.visible = false;
-	stage.addChild(disabler);
+	game = new Chess();
+
+	var removeGreySquares = function() {
+		$('#board .square-55d63').css('background', '');
+	};
+
+	var greySquare = function(square) {
+		var squareEl = $('#board .square-' + square);
+
+		var background = '#a9a9a9';
+		if (squareEl.hasClass('black-3c85d') === true) {
+			background = '#696969';
+		}
+
+		squareEl.css('background', background);
+	};
+
+	var onDragStart = function(source, piece) {
+		// do not pick up pieces if the game is over
+		// or if it's not that side's turn
+		if (game.game_over() === true ||
+			(game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+			(game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+			return false;
+		}
+	};
+
+	var onDrop = function(source, target) {
+		removeGreySquares();
+
+		// see if the move is legal
+		var move = game.move({
+			from: source,
+			to: target,
+			promotion: 'q' // NOTE: always promote to a queen for example simplicity
+		});
+
+		// illegal move
+		if (move === null) return 'snapback';
+	};
+
+	var onMouseoverSquare = function(square, piece) {
+		// get list of possible moves for this square
+		var moves = game.moves({
+			square: square,
+			verbose: true
+		});
+
+		// exit if there are no moves available for this square
+		if (moves.length === 0) return;
+
+		// highlight the square they moused over
+		greySquare(square);
+
+		// highlight the possible squares for this piece
+		for (var i = 0; i < moves.length; i++) {
+			greySquare(moves[i].to);
+		}
+	};
+
+	var onMouseoutSquare = function(square, piece) {
+		removeGreySquares();
+	};
+
+	var onSnapEnd = function() {
+		board.position(game.fen());
+	};
+
+	var cfg = {
+		draggable: true,
+		position: 'start',
+		onDragStart: onDragStart,
+		onDrop: onDrop,
+		onMouseoutSquare: onMouseoutSquare,
+		onMouseoverSquare: onMouseoverSquare,
+		onSnapEnd: onSnapEnd
+	};
+	board = ChessBoard('board', cfg);
 }
 
 /**
@@ -233,7 +176,7 @@ function tick() {
 function destroyGame(){
 	sfs.removeEventListener(SFS2X.SFSEvent.EXTENSION_RESPONSE, onExtensionResponse);
 	sfs.removeEventListener(SFS2X.SFSEvent.SPECTATOR_TO_PLAYER, onSpectatorToPlayer);
-	
+
 	//Remove PopUp
 	removeGamePopUp();
 }
@@ -278,9 +221,8 @@ function setTurn(){
  * Clear the game board
  */
 function resetGameBoard(){
-	for (var i = 0; i<9; i++){
-		squares[i].ball.gotoAndStop(0);
-	}
+	board.start();
+	game.reset();
 }
 
 /**

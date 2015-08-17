@@ -24,7 +24,7 @@ function init()
 	var config = {};
 	config.host = "127.0.0.1";
 	config.port = 8888;
-	config.zone = "ChessCube";
+	config.zone = "ChessExample";
 	config.debug = false;
 	
 	// Create SmartFox client instance
